@@ -1,0 +1,51 @@
+<mvc:View
+    xmlns:html="http://www.w3.org/1999/xhtml"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:form="sap.ui.layout.form"
+    controllerName="com-mdert-resolution-tracker-project.controller.LoginPage"
+    displayBlock="true"
+>
+<App>
+ <Page title="Login Form">
+  <content>
+   <VBox fitContainer="true" justifyContent="Center" alignItems="Center" alignContent="Center">
+	 <form:SimpleForm>
+        <form:content>
+            <Title
+                class="title"
+                text="Please enter your credentials"
+            />
+            <Label
+                class="label"
+                text="UserName"
+            />
+            <Input
+                class="input"
+                id="user"
+                placeholder="Enter Username"
+            />
+            <Label
+                class="label"
+                text="Password"
+            />
+            <Input
+                class="pwdClass"
+                id="pwd"
+                type="Password"
+                placeholder="Enter Password"
+            />
+        </form:content>
+        <Button
+            icon="sap-icon://visits"
+            id="btn"
+            text="Login"
+            type="Accept"
+            press="onBtnClick"
+        />
+    </form:SimpleForm>
+   </VBox>
+  </content>
+ </Page>
+</App>
+</mvc:View>

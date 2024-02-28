@@ -1,0 +1,13 @@
+{
+    "name": "com-mdert-resolution-tracker-project",
+    "version": "1.0.0",
+    "author": "SAP SE",
+    "description": "MDPERT In-House project",
+    "scripts": {
+        "start": "ui5 serve",
+        "build": "ui5 build"
+    },
+    "devDependencies": {
+        "@ui5/cli": "^3.9.1"
+    }
+}

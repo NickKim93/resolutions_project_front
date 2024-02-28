@@ -1,0 +1,68 @@
+{
+	"sap.app": {
+		"id": "com-mdert-resolution-tracker-project",
+		"applicationVersion": {
+			"version": "1.0.0"
+		}
+	},
+	"sap.ui5": {
+		"rootView": {
+			"viewName": "com-mdert-resolution-tracker-project.view.App",
+			"type": "XML",
+			"async": true,
+			"id": "app"
+		},
+		"dependencies": {
+			"libs": {
+				"sap.m": {},
+				"sap.ui.core": {},
+				"sap.ui.unified": {}
+			}
+		},
+		"config": {
+			"sample": {
+				"stretch": true
+			}
+		},
+		"routing": {
+			"config": {
+				"routerClass": "sap.m.routing.Router",
+				"viewType": "XML",
+				"viewPath": "com-mdert-resolution-tracker-project.view",
+				"controlId": "app",
+				"controlAggregation": "pages",
+				"async": true
+			},
+			"routes": [
+				{
+					"pattern": "",
+					"name": "login",
+					"target": "login"
+				},
+				{
+					"pattern": "page",
+					"name": "page",
+					"target": "page"
+				}
+			],
+			"targets": {
+				"login": {
+					"viewName": "LoginPage",
+					"viewLevel": 1
+				},
+				"page": {
+					"viewName": "Page",
+					"viewLevel": 2
+				}
+			}
+		},
+		"models": {
+			"i18n": {
+				"type": "sap.ui.model.resource.ResourceModel",
+				"settings": {
+					"bundleName": "com-mdert-resolution-tracker-project.i18n.i18n"
+				}
+			}
+		}
+	}
+}
