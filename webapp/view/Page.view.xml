@@ -70,26 +70,14 @@
 			<upload:items>
 				
 				<upload:UploadSetItem
-						fileName="{files>fileName}"
-						mediaType="{files>mediaType}"
-						enabledEdit="false"
-            			enabledRemove="{files>isRemovable}"
-						markers="{path: 'markers', templateShareable: false}"
-						statuses="{files>}"
-						uploadState="{uploadState}">
-					<upload:markers>
-						<ObjectMarker
-								type="{type}"
-								visibility="{visibility}"/>
-					</upload:markers>
-					<upload:statuses>
-						<ObjectStatus
-								title="{title}"
-								text="{text}"
-								state="{state}"
-								icon="{icon}"
-								active="{active}"/>
-					</upload:statuses>
+					fileName="{files>fileName}"
+					enabledEdit="false"
+				>
+					<ObjectAttribute
+						title="Updated On"
+						text="{files>updatedAt}"
+					>
+					</ObjectAttribute>
 				</upload:UploadSetItem>
 			</upload:items>
 		</upload:UploadSet>
