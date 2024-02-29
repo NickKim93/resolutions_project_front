@@ -13,7 +13,6 @@
                 <Button text="Logout" press="onLogout"/>
             </OverflowToolbar>
         </customHeader>
-		<content>
 			
 			<upload:UploadSet
 				id="UploadSet"
@@ -93,7 +92,6 @@
 				</upload:UploadSetItem>
 			</upload:items>
 		</upload:UploadSet>
-		</content>
 		
 	</Page>
 </mvc:View>
