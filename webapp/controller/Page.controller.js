@@ -136,19 +136,54 @@ sap.ui.define([
 						}.bind(this)
 					});
 				});
+
 		},
 
 		refreshModelAndView: function() {
 			window.location.reload(true);
 		},
 		onDownloadSelectedButton: function () {
+		
 			console.log("onDownloadSelectedButton");
 			var oUploadSet = this.byId("UploadSet");
-
-			oUploadSet.getItems().forEach(function (oItem) {
-				if (oItem.getListItem().getSelected()) {
-					oItem.download(true);
-				}
+			var accessToken = sessionStorage.getItem("accessToken");
+		
+			oUploadSet.getSelectedItems().forEach(function (oItem) {
+				var fileName = oItem.getFileName(); // Adjust based on your actual data model
+				var downloadUrl = `http://localhost:5500/download/${encodeURIComponent(fileName)}`;
+		
+				// Attempt to use $.ajax for the request
+				$.ajax({
+					url: downloadUrl,
+					method: "GET",
+					xhrFields: {
+						responseType: 'blob' // Important for handling binary data
+					},
+					headers: {
+						'Authorization': 'Bearer ' + accessToken
+					},
+					success: function(blob) {
+						// Create a URL for the blob object and trigger download
+						var url = window.URL.createObjectURL(blob);
+						var a = document.createElement('a');
+						a.href = url;
+						a.download = fileName;
+						document.body.appendChild(a);
+						a.click(); 
+						window.URL.revokeObjectURL(url);
+						a.remove();
+					},
+					error: function(xhr, status, error) {
+						console.error('Download error:', error);
+						if (xhr.status !== 401) {
+							sap.m.MessageBox.error("File was not found. Please reload the page and try again", {
+								onClose: function() {
+									// placeholder
+								}
+							});
+						}
+					}
+				});
 			});
 		},
 		onSelectionChange: function() {
