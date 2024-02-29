@@ -13,9 +13,7 @@ sap.ui.define([
 			var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
     		oRouter.getRoute("page").attachPatternMatched(this.onRouteMatched, this);
 			var oUploadSet = this.byId("UploadSet");
-
-			this.getView().setModel(new JSONModel());
-			
+			this.getView().setModel(new sap.ui.model.json.JSONModel(), "filteredFiles");
 
 			// Modify "add file" button
 			oUploadSet.getDefaultFileUploader().setButtonOnly(false);
@@ -41,6 +39,7 @@ sap.ui.define([
 		},
 		fetchEmployeeData: function(accessToken, employeeId) {
 			var url = "http://localhost:5500/employees/" + employeeId;
+			var that = this;
 			$.ajax({
 				url: url,
 				method: "GET",
@@ -53,12 +52,12 @@ sap.ui.define([
 						}).concat(response.spendingResolutions.map(function(item) {
 							return { ...item, fileType: "spendingResolution", isNew: false, isEditable: false, isRemovable: false };
 						}));
+						//storing fetched data
+						that._originalFilesData = mergedFiles;
 						var oModel = new sap.ui.model.json.JSONModel(response);
 						this.getView().setModel(oModel, "employeeData");
 						var oModel2 = new sap.ui.model.json.JSONModel(mergedFiles);
 						this.getView().setModel(oModel2, "files");
-						console.log('oModel',oModel2);
-						console.log(this.getView().getModel("files"));
 					}.bind(this),
 				error: function(xhr, textStatus, error) {
 					// Since the global error handler takes care of token refresh, 
@@ -74,12 +73,29 @@ sap.ui.define([
 				}.bind(this)
 			});
 		},
+		handleChange: function(oEvent) {
+			console.log("handleChange trigger");
+			var oDateRangeSelection = this.byId("DRS1");
+			var oStartDate = oDateRangeSelection.getDateValue();
+			var oEndDate = oDateRangeSelection.getSecondDateValue();
+
+			// Adjust the end date to include the entire day
+			oEndDate.setHours(23, 59, 59, 999);
+
+			// Filter files based on the selected date range
+			var aFilteredFiles = this._originalFilesData.filter(function(file) {
+				var oFileDate = new Date(file.updatedAt);
+				return oFileDate >= oStartDate && oFileDate <= oEndDate;
+			});
+
+			this.getView().getModel("files").setData(aFilteredFiles);
+		},
+		
 		onUploadSelectedButton: function () {
 			
 			var accessToken = sessionStorage.getItem("accessToken");
 			var oUploadSet = this.byId("UploadSet");
 			var aFiles = oUploadSet.getSelectedItems();
-			console.log(aFiles);
 			
 			var aUploadPromises = [];
 
@@ -113,10 +129,15 @@ sap.ui.define([
 				.catch(error => {
 					// At least one file failed to upload
 					console.error("Error:", error);
-					sap.m.MessageBox.error("An error occurred during the upload.");
+					sap.m.MessageBox.error("An error occurred during the upload. Please reload the page", {
+						onClose: function() {
+							// Trigger refresh here
+							this.refreshModelAndView();
+						}.bind(this)
+					});
 				});
-			
 		},
+
 		refreshModelAndView: function() {
 			window.location.reload(true);
 		},
@@ -147,13 +168,12 @@ sap.ui.define([
 			} else {
 				// oVersionBtn.setEnabled(false);
 				oUploadBtn.setEnabled(false);
-				oDownloadBtn.setEnabled(false);
+				oDownloadBtn.setEnabled(false);	
 			}
 		},
 		// Add below element to Page.view if you want to enable VersionUpload
 		//<Button id="versionButton" enabled="false" text="Upload a new version" press="onVersionUpload"/>
 		onVersionUpload: function(oEvent) {
-			console.log("onVersionUpload");
 			var oUploadSet = this.byId("UploadSet");
 			this.oItemToUpdate = oUploadSet.getSelectedItem()[0];
 			oUploadSet.openFileDialog(this.oItemToUpdate);

@@ -14,29 +14,7 @@
             </OverflowToolbar>
         </customHeader>
 		<content>
-			<VBox class="sapUiSamllMargin">
-			<Label text="Select Date" labelFor="DRS1"/>
-		<DateRangeSelection
-			id="DRS1"
-			class="DRS1"
-			value= "{
-				'type': 'sap.ui.model.type.DateInterval',
-				'formatOptions': {
-					'pattern': 'yyyy/MM/dd'
-				},
-				'parts': [
-					{
-						'type': 'sap.ui.model.type.Date',
-						'path': '/start'
-					},
-					{
-						'type': 'sap.ui.model.type.Date',
-						'path': '/end'
-					}
-				]
-			}"
-			change="handleChange"/>
-			</VBox>
+			
 			<upload:UploadSet
 				id="UploadSet"
 				instantUpload="true"
@@ -52,8 +30,30 @@
 				selectionChanged="onSelectionChange">
 
 			<upload:toolbar>
-				<OverflowToolbar>
+				<OverflowToolbar >
 					<Text text="{i18n>documentTableTitle} ({= ${employeeData>/receipts}.length + ${employeeData>/spendingResolutions}.length})"/>
+					<HBox class="sapUiSmallMargin">
+						<DateRangeSelection
+							id="DRS1"
+							class="DRS1"
+							value= "{
+								'type': 'sap.ui.model.type.DateInterval',
+								'formatOptions': {
+									'pattern': 'yyyy/MM/dd'
+								},
+								'parts': [
+									{
+										'type': 'sap.ui.model.type.Date',
+										'path': '/start'
+									},
+									{
+										'type': 'sap.ui.model.type.Date',
+										'path': '/end'
+									}
+								]
+							}"
+							change="handleChange"/>
+					</HBox>
 					<ToolbarSpacer/>
 					<Button
 							id="uploadSelectedButton"
