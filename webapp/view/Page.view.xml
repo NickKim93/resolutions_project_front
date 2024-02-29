@@ -70,7 +70,8 @@
 				
 				<upload:UploadSetItem
 					fileName="{files>fileName}"
-					enabledEdit="false"
+					visibleEdit="{files>isEditable}"
+					visibleRemove="{files>isRemovable}"
 				>
 					<ObjectAttribute
 						title="Updated On"
