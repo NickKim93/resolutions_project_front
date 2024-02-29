@@ -47,16 +47,20 @@ sap.ui.define([
 					"Authorization": "Bearer " + accessToken
 				},
 					success: function(response) {
-						var mergedFiles = response.receipts.map(function(item) {
-							return { ...item, fileType: "receipt", isNew: false, isEditable: false, isRemovable: false };
-						}).concat(response.spendingResolutions.map(function(item) {
-							return { ...item, fileType: "spendingResolution", isNew: false, isEditable: false, isRemovable: false };
+						let fileType = '';
+						var mergedFiles = response.receipts.map(function(item, idx) {
+							fileType = 'receipt';
+							return that.fileFormat(item, fileType, idx);
+						}).concat(response.spendingResolutions.map(function(item, idx) {
+							fileType = 'spendingResolution';
+							return that.fileFormat(item, fileType, idx);
 						}));
 						//storing fetched data
 						that._originalFilesData = mergedFiles;
 						var oModel = new sap.ui.model.json.JSONModel(response);
 						this.getView().setModel(oModel, "employeeData");
 						var oModel2 = new sap.ui.model.json.JSONModel(mergedFiles);
+						console.log(oModel2);
 						this.getView().setModel(oModel2, "files");
 					}.bind(this),
 				error: function(xhr, textStatus, error) {
@@ -73,6 +77,21 @@ sap.ui.define([
 				}.bind(this)
 			});
 		},
+		fileFormat: function (item, fileType, index) {
+			
+			item.updatedAt = this.convertDateFormat(item.updatedAt);
+			item.createdAt = this.convertDateFormat(item.updatedAt);
+
+			item.statuses = {
+				createdAt: item.createdAt,
+				updatedAt: item.updatedAt,
+				fileSize: item.fileSize,
+				index: index + 1,
+			}
+			console.log('item:', item);
+			return { ...item, fileType: fileType, isNew: false, isEditable: false, isRemovable: false };
+		},
+
 		handleChange: function(oEvent) {
 			console.log("handleChange trigger");
 			var oDateRangeSelection = this.byId("DRS1");
@@ -224,6 +243,18 @@ sap.ui.define([
 		onMediaTypeMismatch: function(oEvent) {
 			var sFileName = oEvent.getParameter("item").getFileName();
 			sap.m.MessageBox.warning("The file '" + sFileName + "' is not of an allowed type. Please upload only the supported file types.");
+		},
+		convertDateFormat: function (date) {
+			const newDate = new(Date);
+
+			const year = newDate.getFullYear();
+			const month = newDate.getMonth();
+			const day = newDate.getDate();
+
+			let formattingMonth = month >= 9 ? month + 1 : "0" + (month + 1);
+			let formattingDay = day > 9 ? day : "0" + day;
+
+			return `${year}.${formattingMonth}.${formattingDay}`;
 		}
 	});
 });
