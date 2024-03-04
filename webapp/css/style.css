@@ -1,0 +1,18 @@
+
+.redButtonText {
+    color: red !important;
+    background-color: transparent;
+    border: 0.0625rem solid transparent;
+    font-family: "72-SemiboldDuplex", "72-SemiboldDuplexfull", "72", "72full", Arial, Helvetica, sans-serif;
+    font-size: .875rem;
+    text-shadow: none;
+    white-space: nowrap;
+    display: inline-block;
+    cursor: pointer;
+    border-radius: 0.5rem;  
+    box-sizing: border-box;               
+}
+.redButtonText:hover {
+    background-color: #e6e6e6 !important;
+    border: 0.0625rem solid #a8b3bd;
+}

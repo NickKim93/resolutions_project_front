@@ -1,7 +1,8 @@
 sap.ui.define([
     "sap/ui/core/UIComponent",
-    "./util/TokenHandler"
-], (UIComponent, TokenHandler) => {
+    "./util/TokenHandler",
+    "sap/m/MessageBox"
+], (UIComponent, TokenHandler, MessageBox) => {
     "use strict";
 
     return UIComponent.extend("com-mdert-resolution-tracker-project", {

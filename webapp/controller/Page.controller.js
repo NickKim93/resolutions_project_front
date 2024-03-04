@@ -13,6 +13,8 @@ sap.ui.define([
 			var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
     		oRouter.getRoute("page").attachPatternMatched(this.onRouteMatched, this);
 			var oUploadSet = this.byId("UploadSet");
+			oUploadSet.attachFileRenamed(this.onFileRenamed, this);
+			this.renamedFiles = {};
 			this.getView().setModel(new sap.ui.model.json.JSONModel(), "filteredFiles");
 
 			// Modify "add file" button
@@ -21,6 +23,13 @@ sap.ui.define([
 			oUploadSet.getDefaultFileUploader().setIconOnly(true);
 			oUploadSet.getDefaultFileUploader().setIcon("sap-icon://attachment");
 			oUploadSet.attachUploadCompleted(this.onUploadCompleted.bind(this));
+
+			var oUploadBtn = this.byId("uploadSelectedButton");
+			var oDownloadBtn = this.byId("downloadSelectedButton");
+			var oDeleteBtn = this.byId("deleteSelectedButton");
+			oUploadBtn.setEnabled(false);
+			oDownloadBtn.setEnabled(false);	
+			oDeleteBtn.setEnabled(false);
 			
 		},
 		onRouteMatched: function(oEvent) {
@@ -60,7 +69,6 @@ sap.ui.define([
 						var oModel = new sap.ui.model.json.JSONModel(response);
 						this.getView().setModel(oModel, "employeeData");
 						var oModel2 = new sap.ui.model.json.JSONModel(mergedFiles);
-						console.log(oModel2);
 						this.getView().setModel(oModel2, "files");
 					}.bind(this),
 				error: function(xhr, textStatus, error) {
@@ -81,14 +89,13 @@ sap.ui.define([
 			
 			item.updatedAt = this.convertDateFormat(item.updatedAt);
 			item.createdAt = this.convertDateFormat(item.updatedAt);
-
+			
 			item.statuses = {
 				createdAt: item.createdAt,
 				updatedAt: item.updatedAt,
 				fileSize: item.fileSize,
 				index: index + 1,
 			}
-			console.log('item:', item);
 			return { ...item, fileType: fileType, isNew: false, isEditable: false, isRemovable: false };
 		},
 
@@ -98,10 +105,8 @@ sap.ui.define([
 			var oStartDate = oDateRangeSelection.getDateValue();
 			var oEndDate = oDateRangeSelection.getSecondDateValue();
 
-			// Adjust the end date to include the entire day
 			oEndDate.setHours(23, 59, 59, 999);
 
-			// Filter files based on the selected date range
 			var aFilteredFiles = this._originalFilesData.filter(function(file) {
 				var oFileDate = new Date(file.updatedAt);
 				return oFileDate >= oStartDate && oFileDate <= oEndDate;
@@ -111,51 +116,67 @@ sap.ui.define([
 		},
 		
 		onUploadSelectedButton: function () {
-			
+				
 			var accessToken = sessionStorage.getItem("accessToken");
 			var oUploadSet = this.byId("UploadSet");
 			var aFiles = oUploadSet.getSelectedItems();
+			var filesUploaded = 0;
+			var uploadErrors = [];
+			var that = this;
 			
-			var aUploadPromises = [];
-
+		
 			aFiles.forEach((oItem) => {
 				var oFile = oItem.getFileObject();
 				if (oFile) {
 					var oFormData = new FormData();
-					oFormData.append("file", oFile);
-					var uploadPromise = fetch("http://localhost:5500/upload", {
-						method: "POST",
-						body: oFormData,
+					var renamedFileName = this.renamedFiles[oFile.name];
+					var filenameToUse = renamedFileName || oFile.name;
+					console.log(filenameToUse);
+					oFormData.append("file", oFile, filenameToUse);
+					$.ajax({
+						url: "http://localhost:5500/upload",
+						type: "POST",
+						processData: false,
+						contentType: false,
+						data: oFormData,
 						headers: {
 							"Authorization": "Bearer " + accessToken,
+						},
+						success: function(data) {
+							filesUploaded++;
+							if (filesUploaded === aFiles.length) {
+								// All files uploaded successfully
+								sap.m.MessageBox.success(filesUploaded + " file(s) were uploaded.", {
+									onClose: function () {
+										that.refreshModelAndView();
+									}
+								});
+							}
+						},
+						error: function(xhr, status, error) {
+							uploadErrors.push(error);
+							console.error('Download error:', error);
+							if (filesUploaded + uploadErrors.length === aFiles.length) {
+								if (uploadErrors.length === aFiles.length) {
+									if (xhr.status !== 401) {
+										sap.m.MessageBox.error("An error occurred during the upload. Please reload the page", {
+											onClose: function () {
+												that.refreshModelAndView();
+											}
+										});
+									}
+								} else {
+									sap.m.MessageBox.warning(filesUploaded + " file(s) were uploaded successfully, but " + uploadErrors.length + " failed.", {
+										onClose: function () {
+											that.refreshModelAndView();
+										}
+									});
+								}
+							}
 						}
 					});
-					aUploadPromises.push(uploadPromise);
 				}
 			});
-
-			Promise.all(aUploadPromises.map(p => p.then(res => res.ok ? res.json() : Promise.reject(new Error('Upload failed')))))
-				.then(data => {
-					// All files uploaded successfully
-					console.log("Success:", data);
-					sap.m.MessageBox.success(data.length + " file(s) were uploaded.", {
-						onClose: function() {
-							// Trigger refresh here
-							this.refreshModelAndView();
-						}.bind(this)
-					});
-				})
-				.catch(error => {
-					// At least one file failed to upload
-					console.error("Error:", error);
-					sap.m.MessageBox.error("An error occurred during the upload. Please reload the page", {
-						onClose: function() {
-							// Trigger refresh here
-							this.refreshModelAndView();
-						}.bind(this)
-					});
-				});
-
 		},
 
 		refreshModelAndView: function() {
@@ -168,15 +189,14 @@ sap.ui.define([
 			var accessToken = sessionStorage.getItem("accessToken");
 		
 			oUploadSet.getSelectedItems().forEach(function (oItem) {
-				var fileName = oItem.getFileName(); // Adjust based on your actual data model
+				var fileName = oItem.getFileName();
 				var downloadUrl = `http://localhost:5500/download/${encodeURIComponent(fileName)}`;
 		
-				// Attempt to use $.ajax for the request
 				$.ajax({
 					url: downloadUrl,
 					method: "GET",
 					xhrFields: {
-						responseType: 'blob' // Important for handling binary data
+						responseType: 'blob'
 					},
 					headers: {
 						'Authorization': 'Bearer ' + accessToken
@@ -195,7 +215,7 @@ sap.ui.define([
 					error: function(xhr, status, error) {
 						console.error('Download error:', error);
 						if (xhr.status !== 401) {
-							sap.m.MessageBox.error("File was not found. Please reload the page and try again", {
+							sap.m.MessageBox.error(fileName + " was not found. Please reload the page and try again", {
 								onClose: function() {
 									// placeholder
 								}
@@ -205,36 +225,83 @@ sap.ui.define([
 				});
 			});
 		},
-		onSelectionChange: function() {
+		onDeleteSelectedButton: function () {
+		
 			var oUploadSet = this.byId("UploadSet");
-			// If there's any item selected, sets version button enabled
-			// var oVersionBtn = this.byId("versionButton");
+			var accessToken = sessionStorage.getItem("accessToken");
+			var employeeId = sessionStorage.getItem("employeeId");
+			let deletePromises = [];
+
+			oUploadSet.getSelectedItems().forEach((oItem) => {
+				var fileName = oItem.getFileName();
+				var deleteUrl = "http://localhost:5500/deletefile";
+
+				let deletePromise = new Promise((resolve, reject) => {
+					$.ajax({
+						url: deleteUrl,
+						method: "DELETE",
+						contentType: 'application/json',
+						headers: {
+							'Authorization': 'Bearer ' + accessToken
+						},
+						data: JSON.stringify({
+							fileName: fileName,
+							employeeId: employeeId
+						}),
+						success: () => resolve(fileName),
+						error: (xhr) => reject({ xhr: xhr, fileName: fileName })
+					});
+				});
+
+				deletePromises.push(deletePromise);
+			});
+
+			Promise.allSettled(deletePromises).then((results) => {
+				let deletedFiles = results.filter(result => result.status === 'fulfilled').map(result => result.value);
+				let errors = results.filter(result => result.status === 'rejected').map(result => result.reason);
+
+				if (deletedFiles.length > 0) {
+					sap.m.MessageBox.success(deletedFiles.length + " file(s) were deleted.", {
+						onClose: () => {
+							this.refreshModelAndView();
+						}
+					});
+				}
+
+				if (errors.length > 0) {
+					let firstError = errors[0];
+					let errorMessage = firstError.xhr.responseJSON && firstError.xhr.responseJSON.message 
+									? firstError.xhr.responseJSON.message 
+									: "An error occurred while deleting " + firstError.fileName + ". Please try again.";
+					sap.m.MessageBox.error(errorMessage);
+				}
+			});
+		},
+		onSelectionChange: function() {
+
+			var oUploadSet = this.byId("UploadSet");
 			var oUploadBtn = this.byId("uploadSelectedButton");
 			var oDownloadBtn = this.byId("downloadSelectedButton");
+			var oDeleteBtn = this.byId("deleteSelectedButton");
+
 			if (oUploadSet.getSelectedItems().length > 0) {
 				oUploadBtn.setEnabled(true);
 				oDownloadBtn.setEnabled(true);
-				// if (oUploadSet.getSelectedItems().length === 1) {
-				// 	oVersionBtn.setEnabled(true);
-				// } else {
-				// 	oVersionBtn.setEnabled(false);
-				// }
+				oDeleteBtn.setEnabled(true);
 			} else {
-				// oVersionBtn.setEnabled(false);
 				oUploadBtn.setEnabled(false);
 				oDownloadBtn.setEnabled(false);	
+				oDeleteBtn.setEnabled(false);
 			}
 		},
-		// Add below element to Page.view if you want to enable VersionUpload
-		//<Button id="versionButton" enabled="false" text="Upload a new version" press="onVersionUpload"/>
-		onVersionUpload: function(oEvent) {
-			var oUploadSet = this.byId("UploadSet");
-			this.oItemToUpdate = oUploadSet.getSelectedItem()[0];
-			oUploadSet.openFileDialog(this.oItemToUpdate);
+		onFileRenamed: function(oEvent) {
+			var oParameters = oEvent.getParameters();
+			var oRenamedItem = oParameters.item;
+			var sNewFileName = oRenamedItem.getFileName();
+			this.renamedFiles[oRenamedItem.getFileObject().name] = sNewFileName;
 		},
 		onUploadCompleted: function(oEvent) {
 			this.oItemToUpdate = null;
-			// this.byId("versionButton").setEnabled(false);
 		},
 		onLogout: function () {
 			sessionStorage.removeItem("accessToken");
@@ -244,17 +311,9 @@ sap.ui.define([
 			var sFileName = oEvent.getParameter("item").getFileName();
 			sap.m.MessageBox.warning("The file '" + sFileName + "' is not of an allowed type. Please upload only the supported file types.");
 		},
-		convertDateFormat: function (date) {
-			const newDate = new(Date);
-
-			const year = newDate.getFullYear();
-			const month = newDate.getMonth();
-			const day = newDate.getDate();
-
-			let formattingMonth = month >= 9 ? month + 1 : "0" + (month + 1);
-			let formattingDay = day > 9 ? day : "0" + day;
-
-			return `${year}.${formattingMonth}.${formattingDay}`;
+		convertDateFormat: function (dateString) {
+			var date = new Date(dateString);
+			return date.toISOString().split('T')[0]; 
 		}
 	});
 });
